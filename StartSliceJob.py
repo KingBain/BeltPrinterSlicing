@@ -247,7 +247,9 @@ class StartSliceJob(Job):
                 skip_group = False
                 for node in group:
                     # Only check if the printing extruder is enabled for printing meshes
-                    is_non_printing_mesh = node.callDecoration("evaluateIsNonPrintingMesh")
+                    node_name = node.getName()
+                    is_custom_support = (node_name == "CustomSupportCylinder" or node_name == "CustomSupportCube")
+                    is_non_printing_mesh = is_custom_support or node.callDecoration("evaluateIsNonPrintingMesh") 
                     extruder_position = node.callDecoration("getActiveExtruderPosition")
                     if extruder_position is None: # raft meshes may not have an extruder position (yet)
                         extruder_position = "0"
