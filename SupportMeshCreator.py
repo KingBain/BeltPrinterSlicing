@@ -22,6 +22,7 @@ elif(Platform.isOSX()):
     from .ThirdParty.mac import trimesh
 
 
+
 class SupportMeshCreator():
     def __init__(self,
                     support_angle = None,
