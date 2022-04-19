@@ -225,6 +225,16 @@ class BeltPlugin(QObject,Extension):
                     setting_summary += ";    %s: %s\n" % (definition.label, setting_values[definition.key])
             gcode_list[0] += setting_summary
 
+            
+            init_layer_bed_temp = global_stack.getProperty("material_bed_temperature_layer_0", "value")
+            layer_bed_temp = global_stack.getProperty("material_bed_temperature", "value")
+            temp_search_regex = re.compile(r"M140 S(\d*\.?\d*)")
+            for layer_number, layer in enumerate(gcode_list):
+                layer_temp = layer_bed_temp
+                if layer_number == 0: 
+                    layer_temp = init_layer_bed_temp
+                gcode_list[layer_number] = re.sub(temp_search_regex, lambda m: "M140 S%d" % (int(layer_temp)), layer) #Replace all.
+
             # secondary fans should similar things as print cooling fans
             if enable_secondary_fans:
                 search_regex = re.compile(r"M106 S(\d*\.?\d*)")

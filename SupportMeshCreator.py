@@ -46,6 +46,7 @@ class SupportMeshCreator():
         self._bottom_cut_off = bottom_cut_off
 
     def createSupportMeshForNode(self, node):
+
         # convert node meshdata to trimesh
         node_name = node.getName()
         mesh_data = node.getMeshData().getTransformed(node.getWorldTransformation())
