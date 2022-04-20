@@ -233,10 +233,7 @@ class BeltPlugin(QObject,Extension):
             # Remove the m140 disabled bed temp codes
             temp_search_regex = re.compile(r"M140\s+S0\b")
             for layer_number, layer in enumerate(gcode_list):
-                layer_temp = layer_bed_temp
-                if layer_number == 0: 
-                    layer_temp = init_layer_bed_temp
-                gcode_list[layer_number] = re.sub(temp_search_regex, lambda m: "----DISABLE BED---140 S0" % (int(layer_temp)), layer) #Replace all.
+                gcode_list[layer_number] = re.sub(temp_search_regex, lambda m: "----DISABLE BED---140 S0", layer) #Replace all.
             
             # replace all bed temps (for some reason we get a strange bed temp at the start of the script with this plugin, this is to fix that)
             temp_search_regex = re.compile(r"M140\s+S(\d*\.?\d*)")
@@ -249,10 +246,7 @@ class BeltPlugin(QObject,Extension):
             # Put disabled bed temps back
             temp_search_regex = re.compile(r"----DISABLE BED---140 S0\b")
             for layer_number, layer in enumerate(gcode_list):
-                layer_temp = layer_bed_temp
-                if layer_number == 0: 
-                    layer_temp = init_layer_bed_temp
-                gcode_list[layer_number] = re.sub(temp_search_regex, lambda m: "M140 S0" % (int(layer_temp)), layer) #Replace all.
+                gcode_list[layer_number] = re.sub(temp_search_regex, lambda m: "M140 S0", layer) #Replace all.
 
             # secondary fans should similar things as print cooling fans
             if enable_secondary_fans:
