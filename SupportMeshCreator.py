@@ -22,6 +22,7 @@ elif(Platform.isOSX()):
     from .ThirdParty.mac import trimesh
 
 
+
 class SupportMeshCreator():
     def __init__(self,
                     support_angle = None,
@@ -46,6 +47,7 @@ class SupportMeshCreator():
         self._bottom_cut_off = bottom_cut_off
 
     def createSupportMeshForNode(self, node):
+
         # convert node meshdata to trimesh
         node_name = node.getName()
         mesh_data = node.getMeshData().getTransformed(node.getWorldTransformation())

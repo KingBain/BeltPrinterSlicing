@@ -11,6 +11,7 @@ import math
 import re
 import Arcus #For typing.
 
+
 from UM.Application import Application
 from UM.Job import Job
 from UM.Logger import Logger
@@ -330,6 +331,7 @@ class StartSliceJob(Job):
                 for group in filtered_object_groups:
                     added_meshes = []
                     for object in group:
+                        Logger.log("i","My Log 3 - Adding group: %s", object.getName())
 
                         is_non_printing_mesh = False
                         per_object_stack = object.callDecoration("getStack")
@@ -348,8 +350,10 @@ class StartSliceJob(Job):
                             new_node = self._addMeshFromBuilder(mb, "raftMesh")
                             added_meshes.append(new_node)
                             raft_meshes.append(new_node.getName())
+                            Logger.log("i","My Log 4 - From %s Adding mesh: %s", object.getName(), new_node.getName())
 
                         elif not is_non_printing_mesh:
+                            Logger.log("i","My Log 5 - From %s Non Printing Mesh", object.getName())
                             # add support mesh if needed
                             belt_support_gantry_angle_bias = None
                             belt_support_minimum_island_area = None
@@ -367,6 +371,7 @@ class StartSliceJob(Job):
                                 add_support_mesh = global_enable_support
 
                             if add_support_mesh:
+                                Logger.log("i","My Log 5 - From %s Non Printing Mesh - Add support mesh", object.getName())
                                 #preferences = Application.getInstance().getPreferences()
                                 if belt_support_gantry_angle_bias is None:
                                     belt_support_gantry_angle_bias = self._preferences.getValue("BeltPlugin/support_gantry_angle_bias")
@@ -447,6 +452,7 @@ class StartSliceJob(Job):
                         front_offset = transformVertices(numpy.array([[0,0,scene_front]]), transform_matrix)[0][1]
 
                 for object in group:
+                    Logger.log("i","My Log - started: %s", object.getName())
                     if type(object) is ConvexHullNode:
                         continue
 
@@ -456,8 +462,10 @@ class StartSliceJob(Job):
                     # offset all non-raft objects if rafts are enabled
                     # air gap is applied here to vertically offset objects from the raft
                     if object.getName() not in raft_meshes:
+                        Logger.log("i","My Log - Is Raft: %s", object.getName())
                         translate[1] += raft_offset
                     if front_offset:
+                        Logger.log("i","My Log - Has Front Offset: %s", object.getName())
                         translate[2] -= front_offset
 
                     # This effectively performs a limited form of MeshData.getTransformed that ignores normals.
@@ -466,6 +474,7 @@ class StartSliceJob(Job):
                     verts += translate
 
                     if transform_matrix:
+                        Logger.log("i","My Log - has Transform: %s", object.getName())
                         verts = transformVertices(verts, transform_matrix)
 
                     # Convert from Y up axes to Z up axes. Equals a 90 degree rotation.
@@ -478,13 +487,16 @@ class StartSliceJob(Job):
                     obj.name = object.getName()
                     indices = mesh_data.getIndices()
                     if indices is not None:
+                        Logger.log("i","My Log - No Indicies: %s", object.getName())
                         flat_verts = numpy.take(verts, indices.flatten(), axis=0)
                     else:
+                        Logger.log("i","My Log - Has Indicies: %s", object.getName())
                         flat_verts = numpy.array(verts)
 
                     obj.vertices = flat_verts
 
                     if object.getName() in raft_meshes:
+                        Logger.log("i","My Log - Setting Raft Settings: %s", object.getName())
                         self._addSettingsMessage(obj, {
                             "wall_line_count": 99999999,
                             "speed_wall_0": raft_speed,
@@ -494,6 +506,7 @@ class StartSliceJob(Job):
                         })
 
                     elif object.getName() in support_meshes:
+                        Logger.log("i","My Log - Setting Support Mesh Settings: %s", object.getName())
                         self._addSettingsMessage(obj, {
                             "support_mesh": "True",
                             "support_mesh_drop_down": "False",
@@ -501,6 +514,7 @@ class StartSliceJob(Job):
                         })
 
                     elif object.getName() in bottom_cutting_meshes:
+                        Logger.log("i","My Log - Setting Cutting Mesh Settings: %s", object.getName())
                         self._addSettingsMessage(obj, {
                             "cutting_mesh": True,
                             "wall_line_count": 0,
@@ -511,6 +525,7 @@ class StartSliceJob(Job):
                         })
 
                     else:
+                        Logger.log("i","My Log - Setting Per Object Settings: %s", object.getName())
                         self._handlePerObjectSettings(object, obj)
                     Job.yieldThread()
 
@@ -518,6 +533,8 @@ class StartSliceJob(Job):
                 # TODO: this should be handled per mesh-group instead of per scene
                 # One-at-a-time printing should be disabled for slanted gantry printers for now
 
+                Logger.log("i","My Log: %s - front_offset: %s", object.getName(), str(front_offset))
+                # front_offset = 0
                 self._scene.getRoot().callDecoration("setSceneFrontOffset", front_offset)
 
         self.setResult(StartJobResult.Finished)
