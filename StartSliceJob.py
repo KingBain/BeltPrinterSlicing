@@ -9,8 +9,8 @@ from typing import Any, cast, Dict, List, Optional, Set
 import copy
 import math
 import re
-import Arcus #For typing.
-
+#import Arcus #For typing.
+import pyArcus as Arcus  # For typing.
 
 from UM.Application import Application
 from UM.Job import Job
