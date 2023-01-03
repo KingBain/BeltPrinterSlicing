@@ -13,14 +13,10 @@ from cura.Settings.CuraContainerStack import _ContainerIndexes as ContainerIndex
 from UM.i18n import i18nCatalog
 #from UM.FlameProfiler import pyqtSlot
 
-VERSION_QT5 = False
-try:
-    from PyQt6.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
-    from PyQt6.QtQml  import qmlRegisterSingletonType
-except ImportError:
-    from PyQt5.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
-    from PyQt5.QtQml import qmlRegisterSingletonType
-    VERSION_QT5 = True
+from PyQt5.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
+
+
+
 
 from . import BeltDecorator
 
@@ -31,6 +27,8 @@ from . import CuraEngineBackendPatches
 from . import FlavorParserPatches
 
 from UM.Backend.Backend import BackendState
+
+from PyQt5.QtQml import qmlRegisterSingletonType
 
 import math
 import os.path
