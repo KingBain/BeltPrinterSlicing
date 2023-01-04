@@ -1,10 +1,10 @@
 from cura.CuraApplication import CuraApplication
 
 from UM.Logger import Logger
-from UM.Backend.Backend import BackendState
+from UM.Backend.Backend import Backend, BackendState
 
-from . import ProcessSlicedLayersJob
-from . import StartSliceJob
+from .ProcessSlicedLayersJob import ProcessSlicedLayersJob
+from .StartSliceJob import StartSliceJob
 
 from time import time
 
