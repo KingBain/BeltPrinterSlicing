@@ -1,26 +1,33 @@
 # Copyright (c) 2017 fieldOfView
 # This plugin is released under the terms of the LGPLv3 or higher.
-
-from UM.Extension import Extension
-from UM.Application import Application
-from UM.PluginRegistry import PluginRegistry
-from UM.Settings.ContainerRegistry import ContainerRegistry
-from UM.Settings.SettingFunction import SettingFunction
-from UM.Logger import Logger
-from UM.Version import Version
-
-from cura.Settings.CuraContainerStack import _ContainerIndexes as ContainerIndexes
-from UM.i18n import i18nCatalog
-#from UM.FlameProfiler import pyqtSlot
-
-VERSION_QT5 = False
+USE_QT5 = False
 try:
     from PyQt6.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
     from PyQt6.QtQml  import qmlRegisterSingletonType
 except ImportError:
     from PyQt5.QtCore import QObject, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
     from PyQt5.QtQml import qmlRegisterSingletonType
-    VERSION_QT5 = True
+    USE_QT5 = True
+
+
+
+from cura.CuraApplication import CuraApplication
+from UM.Extension import Extension
+from UM.PluginRegistry import PluginRegistry
+from UM.Message import Message
+from UM.Logger import Logger
+from UM.Version import Version
+#from UM.Application import Application
+
+from UM.Settings.ContainerRegistry import ContainerRegistry
+from UM.Settings.SettingFunction import SettingFunction
+
+from cura.Settings.CuraContainerStack import _ContainerIndexes as ContainerIndexes
+
+from UM.i18n import i18nCatalog
+i18n_catalog = i18nCatalog("belt_printer_slicing")
+
+#from UM.FlameProfiler import pyqtSlot
 
 from . import BeltDecorator
 
@@ -45,19 +52,22 @@ Resources.addSearchPath(
 i18n_catalog = i18nCatalog("belt_printer_slicing")
 
 class BeltPlugin(QObject,Extension):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent = None) -> None:
+        QObject.__init__(self, parent)
+        Extension.__init__(self)
         plugin_path = os.path.dirname(os.path.abspath(__file__))
 
-        self._application = Application.getInstance()
-        self._preferences = self._application.getPreferences()
+        self._application = CuraApplication.getInstance()
+        
+        self._qml_folder = "qml" if not USE_QT5 else "qml_qt5"
 
         self._build_volume_patches = None
         self._cura_engine_backend_patches = None
         self._material_manager_patches = None
-
         self._global_container_stack = None
+        self._settings_dialog = None
 
+        self._preferences = self._application.getPreferences()
         #Belt Plugin environment variable#############################
         self._preferences.addPreference("BeltPlugin/on_plugin", False) #Belt Plugin ON:True,OFF:False
 
@@ -111,7 +121,7 @@ class BeltPlugin(QObject,Extension):
         #    Logger.log("d", "Disabling Update Checker plugin")
         #    plugin_registry._disabled_plugins.append("UpdateChecker")
 
-    def _onPluginsLoaded(self):
+    def _onPluginsLoaded(self) -> None:
         # make sure the we connect to engineCreatedSignal later than PrepareStage does, so we can substitute our own sidebar
         Logger.log("d", "Load belt plugin")
         self._application.engineCreatedSignal.connect(self._onEngineCreated)
@@ -119,7 +129,7 @@ class BeltPlugin(QObject,Extension):
         # Hide nozzle in simulation view
         self._application.getController().activeViewChanged.connect(self._onActiveViewChanged)
 
-    def _onEngineCreated(self):
+    def _onEngineCreated(self) -> None:
 
         # Apply patches
         Logger.log("d", "Apply Patches")
@@ -141,13 +151,13 @@ class BeltPlugin(QObject,Extension):
             for (parser_name, parser_object) in gcode_reader_plugin._flavor_readers_dict.items():
                 self._flavor_parser_patches[parser_name] = FlavorParserPatches.FlavorParserPatches(parser_object)
 
-    def _onSlicingStarted(self):
+    def _onSlicingStarted(self) -> None:
         self._scene_root.callDecoration("calculateTransformData")
 
-    def _onActiveViewChanged(self):
+    def _onActiveViewChanged(self) -> None:
         self._adjustLayerViewNozzle()
 
-    def _adjustLayerViewNozzle(self):
+    def _adjustLayerViewNozzle(self) -> None:
         global_stack = self._application.getGlobalContainerStack()
         if not global_stack:
             return
@@ -161,7 +171,7 @@ class BeltPlugin(QObject,Extension):
                 view.getNozzleNode().setParent(self._application.getController().getScene().getRoot())
 
 
-    def _filterGcode(self, output_device):
+    def _filterGcode(self, output_device) -> None:
         global_stack = self._application.getGlobalContainerStack()
 
         if not self._preferences.getValue("BeltPlugin/on_plugin"):
@@ -363,11 +373,13 @@ class BeltPlugin(QObject,Extension):
             setattr(scene, "gcode_dict", gcode_dict)
 
     def showSettings(self) -> None:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"qml","BeltSettings.qml")
-        self._settings_dialog = self._application.createQmlComponent(path, {"manager":self})
-        self._settings_dialog.show()
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), self._qml_folder, "BeltSettings.qml")
+        
+        self._settings_dialog = self._application.createQmlComponent(path, {"manager": self})
+        if self._settings_dialog:
+            self._settings_dialog.show()
     
     @pyqtSlot()
-    def resetSlice(self):
+    def resetSlice(self) -> None:
         _background = self._application.getBackend()
         _background.backendStateChange.emit(BackendState.NotStarted)
