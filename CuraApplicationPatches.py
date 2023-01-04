@@ -16,6 +16,15 @@ from cura.Arranging.ShapeArray import ShapeArray
 from cura.Arranging.ArrangeObjectsJob import ArrangeObjectsJob
 
 from UM.Logger import Logger
+#from UM.Application import Application
+#from UM.Decorators import override
+
+#from typing import cast, TYPE_CHECKING, Optional, Callable, List, Any, Dict
+#from cura.Machines.Models.GlobalStacksModel import GlobalStacksModel
+
+#from cura.Settings.GlobalStack import GlobalStack
+
+
 
 import os
 
@@ -60,19 +69,27 @@ class CuraApplicationPatches():
         job.start()
 
 
+
+
     #   Copied verbatim from CuraApplication._readMeshFinished, with a patch to place objects in a row
     def _readMeshFinished(self, job):
-        Logger.log("d", "read mesh finisihed!")
-
-        ### START PATCH: detect belt printer
         global_container_stack = self._application.getGlobalContainerStack()
         if not global_container_stack:
+            Logger.log("w", "Can't load meshes before a printer is added.")
             return
 
+        ### START PATCH: detect belt printer          
         is_belt_printer = self._preferences.getValue("BeltPlugin/on_plugin")
         ### END PATCH
 
+        if not self._application._volume:
+            Logger.log("w", "Can't load meshes before the build volume is initialized")
+            return
+
         nodes = job.getResult()
+        if nodes is None:
+            Logger.error("Read mesh job returned None. Mesh loading must have failed.")
+            return
         file_name = job.getFileName()
         file_name_lower = file_name.lower()
         file_extension = file_name_lower.split(".")[-1]
@@ -86,27 +103,31 @@ class CuraApplicationPatches():
         for node_ in DepthFirstIterator(root):
             if node_.callDecoration("isSliceable") and node_.callDecoration("getBuildPlateNumber") == target_build_plate:
                 fixed_nodes.append(node_)
-        global_container_stack = self._application.getGlobalContainerStack()
-        machine_width = global_container_stack.getProperty("machine_width", "value")
-        machine_depth = global_container_stack.getProperty("machine_depth", "value")
-        arranger = Arrange.create(x = machine_width, y = machine_depth, fixed_nodes = fixed_nodes)
-        min_offset = 8
+
         default_extruder_position = self._application.getMachineManager().defaultExtruderPosition
-        default_extruder_id = self._application._global_container_stack.extruders[default_extruder_position].getId()
+        default_extruder_id = self._application._global_container_stack.extruderList[int(default_extruder_position)].getId()
 
         select_models_on_load = self._application.getPreferences().getValue("cura/select_models_on_load")
 
-        for original_node in nodes:
+        nodes_to_arrange = []  # type: List[CuraSceneNode]
+        
+        fixed_nodes = []
+        for node_ in DepthFirstIterator(self._application.getController().getScene().getRoot()):
+            # Only count sliceable objects
+            if node_.callDecoration("isSliceable"):
+                fixed_nodes.append(node_)
 
+        for original_node in nodes:
             # Create a CuraSceneNode just if the original node is not that type
             if isinstance(original_node, CuraSceneNode):
                 node = original_node
             else:
                 node = CuraSceneNode()
                 node.setMeshData(original_node.getMeshData())
+                node.source_mime_type = original_node.source_mime_type
 
-                #Setting meshdata does not apply scaling.
-                if(original_node.getScale() != Vector(1.0, 1.0, 1.0)):
+                # Setting meshdata does not apply scaling.
+                if original_node.getScale() != Vector(1.0, 1.0, 1.0):
                     node.scale(original_node.getScale())
 
             node.setSelectable(True)
@@ -116,7 +137,9 @@ class CuraApplicationPatches():
             is_non_sliceable = "." + file_extension in self._application._non_sliceable_extensions
 
             if is_non_sliceable:
-                self._application.callLater(lambda: self._application.getController().setActiveView("SimulationView"))
+                # Need to switch first to the preview stage and then to layer view
+                self._application.callLater(lambda: (self._application.getController().setActiveStage("PreviewStage"),
+                                        self._application.getController().setActiveView("SimulationView")))
 
                 block_slicing_decorator = BlockSlicingDecorator()
                 node.addDecorator(block_slicing_decorator)
@@ -152,24 +175,20 @@ class CuraApplicationPatches():
                     leading_edge = min(leading_edge, existing_node.getBoundingBox().back)
 
                 if not build_plate_empty or leading_edge < half_node_depth:
-                    node.setPosition(Vector(0, 0, leading_edge - half_node_depth - self._margin_between_models))
+                    node.setPosition(Vector(0, 0, leading_edge - half_node_depth - self._application._margin_between_models))
 
             if file_extension != "3mf" and not is_belt_printer:
                 ### END PATCH
                 if node.callDecoration("isSliceable"):
-                    # Only check position if it's not already blatantly obvious that it won't fit.
-                    if node.getBoundingBox() is None or self._application._volume.getBoundingBox() is None or node.getBoundingBox().width < self._application._volume.getBoundingBox().width or node.getBoundingBox().depth < self._application._volume.getBoundingBox().depth:
-                        # Find node location
-                        offset_shape_arr, hull_shape_arr = ShapeArray.fromNode(node, min_offset = min_offset)
+                    # Ensure that the bottom of the bounding box is on the build plate
+                    if node.getBoundingBox():
+                        center_y = node.getWorldPosition().y - node.getBoundingBox().bottom
+                    else:
+                        center_y = 0
 
-                        # If a model is to small then it will not contain any points
-                        if offset_shape_arr is None and hull_shape_arr is None:
-                            Message(self._application._i18n_catalog.i18nc("@info:status", "The selected model was too small to load."),
-                                    title=self._application._i18n_catalog.i18nc("@info:title", "Warning")).show()
-                            return
+                    node.translate(Vector(0, center_y, 0))
 
-                        # Step is for skipping tests to make it a lot faster. it also makes the outcome somewhat rougher
-                        arranger.findNodePlacement(node, offset_shape_arr, hull_shape_arr, step = 10)
+                    nodes_to_arrange.append(node)
 
             # This node is deep copied from some other node which already has a BuildPlateDecorator, but the deepcopy
             # of BuildPlateDecorator produces one that's associated with build plate -1. So, here we need to check if
@@ -180,13 +199,21 @@ class CuraApplicationPatches():
                 node.addDecorator(build_plate_decorator)
             build_plate_decorator.setBuildPlateNumber(target_build_plate)
 
-            op = AddSceneNodeOperation(node, scene.getRoot())
-            op.push()
+            operation = AddSceneNodeOperation(node, scene.getRoot())
+            operation.push()
 
             node.callDecoration("setActiveExtruder", default_extruder_id)
             scene.sceneChanged.emit(node)
 
             if select_models_on_load:
                 Selection.add(node)
+        try:
+            arrange(nodes_to_arrange, self._application.getBuildVolume(), fixed_nodes)
+        except:
+            Logger.logException("e", "Failed to arrange the models")
+
+        # Ensure that we don't have any weird floaty objects (CURA-7855)
+        for node in nodes_to_arrange:
+            node.translate(Vector(0, -node.getBoundingBox().bottom, 0), SceneNode.TransformSpace.World)
 
         self._application.fileCompleted.emit(file_name)
