@@ -74,7 +74,7 @@ class CuraEngineBackendPatches():
 
         slice_message = self._backend._socket.createMessage("cura.proto.Slice")
         ## PATCH: local import
-        self._backend._start_slice_job = StartSliceJob.StartSliceJob(slice_message)
+        self._backend._start_slice_job = StartSliceJob(slice_message)
         self._backend._start_slice_job_build_plate = build_plate_to_be_sliced
         self._backend._start_slice_job.setBuildPlate(self._backend._start_slice_job_build_plate)
         self._backend._start_slice_job.start()

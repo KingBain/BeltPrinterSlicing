@@ -147,7 +147,7 @@ class StartSliceJob(Job):
             self.setResult(StartJobResult.MaterialIncompatible)
             return
 
-        for position, extruder_stack in stack.extruders.items():
+        for extruder_stack in stack.extruderList:
             material = extruder_stack.findContainer({"type": "material"})
             if not extruder_stack.isEnabled:
                 continue
@@ -166,7 +166,6 @@ class StartSliceJob(Job):
                 self.setResult(StartJobResult.ObjectSettingError)
                 return
 
-        with self._scene.getSceneLock():
             # Remove old layer data.
             for node in DepthFirstIterator(self._scene.getRoot()): #type: ignore #Ignore type error because iter() should get called automatically by Python syntax.
                 if node.callDecoration("getLayerData") and node.callDecoration("getBuildPlateNumber") == self._build_plate_number:
@@ -239,7 +238,7 @@ class StartSliceJob(Job):
             global_stack = CuraApplication.getInstance().getGlobalContainerStack()
             if not global_stack:
                 return
-            extruders_enabled = {position: stack.isEnabled for position, stack in global_stack.extruders.items()}
+            extruders_enabled = [stack.isEnabled for stack in global_stack.extruderList]
             filtered_object_groups = []
             has_model_with_disabled_extruders = False
             associated_disabled_extruders = set()
@@ -249,7 +248,7 @@ class StartSliceJob(Job):
                 for node in group:
                     # Only check if the printing extruder is enabled for printing meshes
                     is_non_printing_mesh = node.callDecoration("evaluateIsNonPrintingMesh")
-                    extruder_position = node.callDecoration("getActiveExtruderPosition")
+                    extruder_position = int(node.callDecoration("getActiveExtruderPosition"))
                     if extruder_position is None: # raft meshes may not have an extruder position (yet)
                         extruder_position = "0"
                     if not is_non_printing_mesh and not extruders_enabled[extruder_position]:
@@ -306,8 +305,8 @@ class StartSliceJob(Job):
             # Build messages for extruder stacks
             # Send the extruder settings in the order of extruder positions. Somehow, if you send e.g. extruder 3 first,
             # then CuraEngine can slice with the wrong settings. This I think should be fixed in CuraEngine as well.
-            extruder_stack_list = sorted(list(global_stack.extruders.items()), key = lambda item: int(item[0]))
-            for _, extruder_stack in extruder_stack_list:
+            #extruder_stack_list = sorted(list(global_stack.extruders.items()), key = lambda item: int(item[0]))
+            for extruder_stack in global_stack.extruderList:
                 if gantry_angle and on_belt_plugin: # not 0 or None
                     # Act on a copy of the stack, so these changes don't cause a reslice
                     _extruder_stack = CuraContainerStack(extruder_stack.getId() + "_temp")
