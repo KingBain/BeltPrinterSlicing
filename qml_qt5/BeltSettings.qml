@@ -1,8 +1,10 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.0
+import QtQuick 2.1
+import QtQuick.Controls 1.4
+import QtQuick.Dialogs 1.2
+import QtQuick.Window 2.1
 
-import UM 1.5 as UM
-import Cura 1.1 as Cura
+import UM 1.3 as UM
+import Cura 1.0 as Cura
 
 
 
@@ -73,7 +75,7 @@ UM.Dialog
                 TextField{
                     id:gantryAngleInput
                     text: UM.Preferences.getValue("BeltPlugin/gantry_angle")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -92,7 +94,7 @@ UM.Dialog
                 TextField{
                     id:repetitionsInput
                     text: UM.Preferences.getValue("BeltPlugin/repetitions")
-                    validator: RegularExpressionValidator { regularExpression: /[1-9]|[1-9][0-9]/ }
+                    validator: RegExpValidator { regExp : /[1-9]|[1-9][0-9]/ }
                 }
             }
         }
@@ -111,7 +113,7 @@ UM.Dialog
                 TextField{
                     id:repetitionsDistanceInput
                     text: UM.Preferences.getValue("BeltPlugin/repetitions_distance")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -150,7 +152,7 @@ UM.Dialog
                 TextField{
                     id:raftMarginInput
                     text: UM.Preferences.getValue("BeltPlugin/raft_margin")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -168,7 +170,7 @@ UM.Dialog
                 TextField{
                     id:raftThicknessInput
                     text: UM.Preferences.getValue("BeltPlugin/raft_thickness")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -186,7 +188,7 @@ UM.Dialog
                 TextField{
                     id:raftGapInput
                     text: UM.Preferences.getValue("BeltPlugin/raft_gap")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -204,7 +206,7 @@ UM.Dialog
                 TextField{
                     id:raftSpeedInput
                     text: UM.Preferences.getValue("BeltPlugin/raft_speed")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -223,7 +225,7 @@ UM.Dialog
                 TextField{
                     id:raftFlowInput
                     text: UM.Preferences.getValue("BeltPlugin/raft_flow")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -262,7 +264,7 @@ UM.Dialog
                 TextField{
                     id:beltWallSpeedInput
                     text: UM.Preferences.getValue("BeltPlugin/belt_wall_speed") / 60.0
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -280,7 +282,7 @@ UM.Dialog
                 TextField{
                     id:beltWallFlowInput
                     text: parseFloat(UM.Preferences.getValue("BeltPlugin/belt_wall_flow") * 100.0).toFixed(2)
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -300,7 +302,7 @@ UM.Dialog
                 TextField{
                     id:beltOffsetInput
                     text: UM.Preferences.getValue("BeltPlugin/z_offset_gap")
-                    validator: RegularExpressionValidator { regularExpression: /[0-9]+\.[0-9]+/ }
+                    validator: RegExpValidator { regExp : /[0-9]+\.[0-9]+/ }
                 }
             }
         }
@@ -339,7 +341,7 @@ UM.Dialog
                 TextField{
                     id:secondaryFansSpeedInput
                     text: UM.Preferences.getValue("BeltPlugin/secondary_fans_speed")
-                    validator: RegularExpressionValidator { regularExpression: /([0-9]|[1-9][0-9])(\.[0-9]+)?|100/ }
+                    validator: RegExpValidator { regExp : /([0-9]|[1-9][0-9])(\.[0-9]+)?|100/ }
                 }
             }
         }
@@ -349,7 +351,7 @@ UM.Dialog
     }
 
     rightButtons: [
-        Cura.PrimaryButton
+        Button
         {
             id: saveButton
             text: catalog.i18nc("@action:button","Save")
@@ -385,7 +387,7 @@ UM.Dialog
                 base.reject();
             }
         } ,
-        Cura.TertiaryButton
+        Button
         {
             id: cancelButton
             text: catalog.i18nc("@action:button","Close")
