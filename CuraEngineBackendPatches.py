@@ -83,7 +83,7 @@ class CuraEngineBackendPatches():
     #   This is a verbatim copy of CuranEngineBackend._startProcessSlicedLayersJob(), with the only difference being the local imports
     def _startProcessSlicedLayersJob(self, build_plate_number) -> None:
         ## PATCH: local import
-        self._backend._process_layers_job = ProcessSlicedLayersJob.ProcessSlicedLayersJob(self._backend._stored_optimized_layer_data[build_plate_number])
+        self._backend._process_layers_job = ProcessSlicedLayersJob(self._backend._stored_optimized_layer_data[build_plate_number])
         self._backend._process_layers_job.setBuildPlate(build_plate_number)
         self._backend._process_layers_job.finished.connect(self._backend._onProcessLayersFinished)
         self._backend._process_layers_job.start()
